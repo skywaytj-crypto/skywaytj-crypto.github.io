@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macro Tracker</title>
+
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --soft: #f8fafc;
+      --active: #0f172a;
+      --activeText: #ffffff;
+      --over: #b91c1c;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap { max-width: 1100px; margin: auto; padding: 20px; }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .boxes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .box {
+      width: 48px; height: 48px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+
+    .box.active { background: var(--active); color: white; }
+    .box.over { background: var(--over); color: white; }
+
+    textarea {
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 10px;
+      padding: 8px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Macro Tracker</h1>
+
+  <div id="app"></div>
+</div>
+
+<script>
+const EXTRA = 3;
+
+const categories = [
+  { id: 'water', name: 'Water', target: 4, amount: 20, label: 'oz' },
+  { id: 'vegetables', name: 'Vegetables', target: 6, amount: 1, label: 'servings' },
+  { id: 'fruit', name: 'Fruit', target: 3, amount: 1, label: 'servings' },
+  { id: 'carbs', name: 'Carbs', target: 5, amount: 25, label: 'g' },
+  { id: 'protein', name: 'Protein', target: 8, amount: 20, label: 'g' },
+  { id: 'fats', name: 'Fats', target: 4, amount: 10, label: 'g' },
+  { id: 'dressings', name: 'Dressings', target: 3, amount: 1, label: 'tbsp' }
+];
+
+let state = JSON.parse(localStorage.getItem('macro')) || {};
+
+function save() {
+  localStorage.setItem('macro', JSON.stringify(state));
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  categories.forEach(cat => {
+    if (!state[cat.id]) state[cat.id] = { count: 0, note: '' };
+
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    div.innerHTML = `
+      <h3>${cat.name}</h3>
+      <div>${state[cat.id].count}/${cat.target}</div>
+      <div class="boxes"></div>
+      <textarea placeholder="Notes...">${state[cat.id].note}</textarea>
+    `;
+
+    const boxWrap = div.querySelector('.boxes');
+
+    for (let i = 1; i <= cat.target + EXTRA; i++) {
+      const b = document.createElement('div');
+      b.className = 'box';
+
+      if (i <= state[cat.id].count) {
+        b.classList.add('active');
+        if (i > cat.target) b.classList.add('over');
+        b.innerText = '✓';
+      } else {
+        b.innerText = i;
+      }
+
+      b.onclick = () => {
+        state[cat.id].count = i;
+        save();
+        render();
+      };
+
+      boxWrap.appendChild(b);
+    }
+
+    const textarea = div.querySelector('textarea');
+    textarea.oninput = (e) => {
+      state[cat.id].note = e.target.value;
+      save();
+    };
+
+    app.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
