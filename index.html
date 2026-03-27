@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Macro Tracker</title>
-
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Macro Tracker" />
+  <meta name="format-detection" content="telephone=no" />
   <style>
     :root {
       --bg: #f1f5f9;
@@ -16,123 +19,641 @@
       --active: #0f172a;
       --activeText: #ffffff;
       --over: #b91c1c;
+      --warnBg: #fef3c7;
+      --warnBorder: #fcd34d;
     }
+
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
       background: var(--bg);
       color: var(--text);
     }
 
-    .wrap { max-width: 1100px; margin: auto; padding: 20px; }
-
-    .card {
-      background: var(--card);
-      border-radius: 20px;
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
       padding: 20px;
-      margin-bottom: 20px;
     }
 
-    .boxes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .card, .sidebar-block {
+      background: var(--card);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
 
-    .box {
-      width: 48px; height: 48px;
-      border-radius: 10px;
+    .card { margin-bottom: 18px; }
+    h1, h2, h3, p { margin: 0; }
+    .subtle { color: var(--muted); }
+    .small { font-size: 12px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      background: var(--soft);
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 16px;
+    }
+
+    .controls, .main-grid, .settings-grid, .setting-row {
+      display: grid;
+      gap: 16px;
+    }
+
+    .controls {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      align-items: end;
+      margin-top: 18px;
+    }
+
+    .main-grid {
+      grid-template-columns: minmax(0, 1.45fr) minmax(290px, 0.7fr);
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input, button, textarea {
+      font: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input, textarea {
       border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: white;
+      color: var(--text);
     }
-
-    .box.active { background: var(--active); color: white; }
-    .box.over { background: var(--over); color: white; }
 
     textarea {
       width: 100%;
+      min-height: 64px;
+      resize: vertical;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      background: white;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    button:hover { border-color: #64748b; }
+
+    .warning {
+      margin-top: 14px;
+      border: 1px solid var(--warnBorder);
+      background: var(--warnBg);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+
+    .hidden { display: none; }
+
+    .macro-row {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: white;
+    }
+
+    .macro-head {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: var(--soft);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .boxes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .box {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      background: white;
+      color: var(--muted);
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .box.active {
+      background: var(--active);
+      color: var(--activeText);
+      border-color: var(--active);
+    }
+
+    .box.over {
+      background: var(--over);
+      color: #ffffff;
+      border-color: var(--over);
+    }
+
+    .summary-item, .weight-item {
+      background: var(--soft);
+      border-radius: 14px;
+      padding: 12px;
       margin-top: 10px;
-      border-radius: 10px;
-      padding: 8px;
+      font-size: 14px;
+    }
+
+    .sidebar-block { margin-bottom: 18px; }
+
+    .setting-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .setting-row {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      margin-top: 10px;
+    }
+
+    .install-note {
+      margin-top: 12px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #3730a3;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-
 <body>
-<div class="wrap">
-  <h1>Macro Tracker</h1>
+  <div class="wrap">
+    <div class="card">
+      <div>
+        <div class="subtle" style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Daily macro tracker</div>
+        <h1 style="margin-top:6px;font-size:34px;">Simple servings-based nutrition tracker</h1>
+        <p class="subtle" style="margin-top:10px;max-width:820px;line-height:1.5;">
+          Built for a 42-year-old man starting at 235 lb and aiming to lose 15–20 lb by June 2026.
+          Targets are editable so you can adjust them as your body weight changes.
+        </p>
+        <div class="install-note">
+          Includes water tracking, red overflow boxes, notes for each section, date selection, and weight logging.
+        </div>
+      </div>
 
-  <div id="app"></div>
-</div>
+      <div class="stats" id="stats"></div>
 
-<script>
-const EXTRA = 3;
+      <div class="controls">
+        <label>
+          <span>Date</span>
+          <input type="date" id="selectedDate" />
+        </label>
 
-const categories = [
-  { id: 'water', name: 'Water', target: 4, amount: 20, label: 'oz' },
-  { id: 'vegetables', name: 'Vegetables', target: 6, amount: 1, label: 'servings' },
-  { id: 'fruit', name: 'Fruit', target: 3, amount: 1, label: 'servings' },
-  { id: 'carbs', name: 'Carbs', target: 5, amount: 25, label: 'g' },
-  { id: 'protein', name: 'Protein', target: 8, amount: 20, label: 'g' },
-  { id: 'fats', name: 'Fats', target: 4, amount: 10, label: 'g' },
-  { id: 'dressings', name: 'Dressings', target: 3, amount: 1, label: 'tbsp' }
-];
+        <label>
+          <span>Weight in lb (optional daily)</span>
+          <input type="number" step="0.1" id="weightInput" placeholder="Enter weight" />
+        </label>
 
-let state = JSON.parse(localStorage.getItem('macro')) || {};
+        <button id="saveWeightBtn" type="button">Save weight</button>
+        <button id="toggleSettingsBtn" type="button">Adjust targets</button>
+      </div>
 
-function save() {
-  localStorage.setItem('macro', JSON.stringify(state));
-}
+      <div class="warning hidden" id="weeklyWarning">
+        Weekly weight check is due. Daily entries are optional, but add at least one weight entry every 7 days.
+      </div>
+    </div>
 
-function render() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
+    <div class="card hidden" id="settingsPanel">
+      <h2 style="font-size:24px;">Editable targets</h2>
+      <p class="subtle" style="margin-top:8px;">Change serving targets or amount per serving whenever needed.</p>
+      <div class="settings-grid" id="settingsGrid" style="margin-top:14px;"></div>
+    </div>
 
-  categories.forEach(cat => {
-    if (!state[cat.id]) state[cat.id] = { count: 0, note: '' };
+    <div class="main-grid">
+      <div>
+        <div id="macroRows"></div>
+      </div>
 
-    const div = document.createElement('div');
-    div.className = 'card';
+      <div>
+        <div class="sidebar-block">
+          <h2 style="font-size:24px;">Today at a glance</h2>
+          <div id="summaryList"></div>
+        </div>
 
-    div.innerHTML = `
-      <h3>${cat.name}</h3>
-      <div>${state[cat.id].count}/${cat.target}</div>
-      <div class="boxes"></div>
-      <textarea placeholder="Notes...">${state[cat.id].note}</textarea>
-    `;
+        <div class="sidebar-block">
+          <h2 style="font-size:24px;">Weight log</h2>
+          <p class="subtle" style="margin-top:6px;">Optional daily. Recommended at least weekly.</p>
+          <div id="weightList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    const boxWrap = div.querySelector('.boxes');
+  <script>
+    var STORAGE_KEY = 'macro-tracker-complete-v1';
+    var EXTRA_BOXES = 3;
 
-    for (let i = 1; i <= cat.target + EXTRA; i++) {
-      const b = document.createElement('div');
-      b.className = 'box';
-
-      if (i <= state[cat.id].count) {
-        b.classList.add('active');
-        if (i > cat.target) b.classList.add('over');
-        b.innerText = '✓';
-      } else {
-        b.innerText = i;
-      }
-
-      b.onclick = () => {
-        state[cat.id].count = i;
-        save();
-        render();
-      };
-
-      boxWrap.appendChild(b);
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
     }
 
-    const textarea = div.querySelector('textarea');
-    textarea.oninput = (e) => {
-      state[cat.id].note = e.target.value;
-      save();
+    function daysBetween(dateA, dateB) {
+      var a = new Date(dateA + 'T00:00:00');
+      var b = new Date(dateB + 'T00:00:00');
+      return Math.floor((b - a) / (1000 * 60 * 60 * 24));
+    }
+
+    function clone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    var defaults = {
+      profile: {
+        age: 42,
+        sex: 'Man',
+        currentWeight: 235,
+        goalLoss: '15-20 lb',
+        goalDate: '2026-06-30'
+      },
+      categories: [
+        { id: 'water', name: 'Water', target: 4, unitAmount: 20, unitLabel: 'oz per serving', totalUnitLabel: 'oz water', note: 'Aim for four 20 oz servings across the day.' },
+        { id: 'vegetables', name: 'Vegetables', target: 6, unitAmount: 1, unitLabel: 'cup raw or 1/2 cup cooked', totalUnitLabel: 'servings', note: 'Aim to build meals around high-volume, lower-calorie foods.' },
+        { id: 'fruit', name: 'Fruit', target: 3, unitAmount: 1, unitLabel: 'medium fruit or 1 cup', totalUnitLabel: 'servings', note: 'Whole fruit is usually more filling than juice.' },
+        { id: 'carbs', name: 'Carbs', target: 5, unitAmount: 25, unitLabel: 'g carbs per serving', totalUnitLabel: 'g carbs', note: 'Examples: 1/2 cup cooked rice/oats, 1 slice bread, small potato.' },
+        { id: 'protein', name: 'Protein', target: 8, unitAmount: 20, unitLabel: 'g protein per serving', totalUnitLabel: 'g protein', note: 'Examples: about 3 oz cooked meat/fish, 3 eggs, or 1 cup Greek yogurt.' },
+        { id: 'fats', name: 'Fats', target: 4, unitAmount: 10, unitLabel: 'g fat per serving', totalUnitLabel: 'g fat', note: 'Examples: 1 tbsp olive oil, 2 tbsp peanut butter, or 1/4 avocado.' },
+        { id: 'dressings', name: 'Dressings / Sauces', target: 3, unitAmount: 1, unitLabel: 'tbsp per serving', totalUnitLabel: 'tbsp', note: 'Track calorie-dense extras separately so they stay visible.' }
+      ],
+      selectedDate: todayISO(),
+      dailyEntries: {},
+      notes: {},
+      weights: []
     };
 
-    app.appendChild(div);
-  });
-}
+    function makeDayTemplate(categories) {
+      var out = {};
+      var list = categories || state.categories;
+      list.forEach(function(cat) {
+        out[cat.id] = 0;
+      });
+      return out;
+    }
 
-render();
-</script>
+    function makeNotesTemplate(categories) {
+      var out = {};
+      var list = categories || state.categories;
+      list.forEach(function(cat) {
+        out[cat.id] = '';
+      });
+      return out;
+    }
+
+    function loadState() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          var initial = clone(defaults);
+          initial.dailyEntries[todayISO()] = makeDayTemplate(initial.categories);
+          initial.notes[todayISO()] = makeNotesTemplate(initial.categories);
+          return initial;
+        }
+
+        var parsed = JSON.parse(raw);
+        var merged = clone(defaults);
+
+        for (var key in parsed) {
+          merged[key] = parsed[key];
+        }
+
+        merged.profile = Object.assign({}, defaults.profile, parsed.profile || {});
+        merged.categories = Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : defaults.categories;
+        merged.dailyEntries = parsed.dailyEntries || {};
+        merged.notes = parsed.notes || {};
+        merged.weights = parsed.weights || [];
+
+        if (!merged.dailyEntries[merged.selectedDate || todayISO()]) {
+          merged.dailyEntries[merged.selectedDate || todayISO()] = makeDayTemplate(merged.categories);
+        }
+
+        if (!merged.notes[merged.selectedDate || todayISO()]) {
+          merged.notes[merged.selectedDate || todayISO()] = makeNotesTemplate(merged.categories);
+        }
+
+        return merged;
+      } catch (e) {
+        var fallback = clone(defaults);
+        fallback.dailyEntries[todayISO()] = makeDayTemplate(fallback.categories);
+        fallback.notes[todayISO()] = makeNotesTemplate(fallback.categories);
+        return fallback;
+      }
+    }
+
+    var state = loadState();
+
+    function ensureDay(date) {
+      if (!state.dailyEntries[date]) state.dailyEntries[date] = makeDayTemplate();
+      if (!state.notes[date]) state.notes[date] = makeNotesTemplate();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function getCurrentDay() {
+      ensureDay(state.selectedDate);
+      return state.dailyEntries[state.selectedDate];
+    }
+
+    function latestWeightDate() {
+      if (!state.weights.length) return null;
+      var sorted = state.weights.slice().sort(function(a, b) {
+        return a.date.localeCompare(b.date);
+      });
+      return sorted[sorted.length - 1].date;
+    }
+
+    function getSummary() {
+      var current = getCurrentDay();
+      return state.categories.map(function(item) {
+        return {
+          id: item.id,
+          name: item.name,
+          target: item.target,
+          unitAmount: item.unitAmount,
+          unitLabel: item.unitLabel,
+          totalUnitLabel: item.totalUnitLabel,
+          note: item.note,
+          count: current[item.id] || 0,
+          total: (current[item.id] || 0) * item.unitAmount
+        };
+      });
+    }
+
+    function renderStats() {
+      var summary = getSummary();
+      var completed = summary.reduce(function(sum, item) {
+        return sum + Math.min(item.count, item.target);
+      }, 0);
+
+      var total = summary.reduce(function(sum, item) {
+        return sum + item.target;
+      }, 0) || 1;
+
+      var completion = Math.round((completed / total) * 100);
+
+      document.getElementById('stats').innerHTML =
+        '<div><div class="subtle small">Start</div><div style="font-weight:700;margin-top:4px;">' + state.profile.currentWeight + ' lb</div></div>' +
+        '<div><div class="subtle small">Goal</div><div style="font-weight:700;margin-top:4px;">' + state.profile.goalLoss + '</div></div>' +
+        '<div><div class="subtle small">Goal date</div><div style="font-weight:700;margin-top:4px;">' + state.profile.goalDate + '</div></div>' +
+        '<div><div class="subtle small">Today</div><div style="font-weight:700;margin-top:4px;">' + completion + '% complete</div></div>';
+    }
+
+    function renderMacroRows() {
+      var container = document.getElementById('macroRows');
+      container.innerHTML = '';
+
+      getSummary().forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'macro-row';
+        row.innerHTML =
+          '<div class="macro-head">' +
+            '<div>' +
+              '<h3 style="font-size:22px;">' + item.name + '</h3>' +
+              '<div class="subtle" style="font-size:14px;margin-top:6px;">Target: ' + item.target + ' serving' + (item.target === 1 ? '' : 's') + ' · ' + item.unitLabel + ' · extra boxes turn red when you go over</div>' +
+              '<div class="subtle small" style="margin-top:6px;">' + item.note + '</div>' +
+            '</div>' +
+            '<div class="pill">' + item.count + '/' + item.target + ' complete · approx ' + item.total + ' ' + item.totalUnitLabel + '</div>' +
+          '</div>' +
+          '<div class="boxes"></div>' +
+          '<textarea class="note-input" placeholder="Add notes (what you drank/ate, details, etc.)"></textarea>';
+
+        var boxes = row.querySelector('.boxes');
+
+        for (var i = 1; i <= item.target + EXTRA_BOXES; i++) {
+          var box = document.createElement('button');
+          box.type = 'button';
+
+          var active = i <= item.count;
+          var overTarget = active && i > item.target;
+
+          box.className = 'box' + (active ? ' active' : '') + (overTarget ? ' over' : '');
+          box.textContent = active ? '✓' : String(i);
+
+          if (i > item.target) {
+            box.title = 'Extra serving beyond target';
+          }
+
+          (function(index, itemId) {
+            box.addEventListener('click', function() {
+              ensureDay(state.selectedDate);
+              state.dailyEntries[state.selectedDate][itemId] = index;
+              saveState();
+              renderAll();
+            });
+          })(i, item.id);
+
+          boxes.appendChild(box);
+        }
+
+        var noteInput = row.querySelector('.note-input');
+        noteInput.value = (state.notes[state.selectedDate] && state.notes[state.selectedDate][item.id]) || '';
+
+        (function(itemId) {
+          noteInput.addEventListener('input', function(e) {
+            ensureDay(state.selectedDate);
+            state.notes[state.selectedDate][itemId] = e.target.value;
+            saveState();
+          });
+        })(item.id);
+
+        container.appendChild(row);
+      });
+    }
+
+    function renderSummary() {
+      var el = document.getElementById('summaryList');
+      el.innerHTML = '';
+
+      getSummary().forEach(function(item) {
+        var block = document.createElement('div');
+        block.className = 'summary-item';
+        block.innerHTML =
+          '<div style="display:flex;justify-content:space-between;gap:10px;">' +
+            '<span style="font-weight:700;">' + item.name + '</span>' +
+            '<span>' + item.count + '/' + item.target + '</span>' +
+          '</div>' +
+          '<div class="subtle small" style="margin-top:6px;">Approx total: ' + item.total + ' ' + item.totalUnitLabel + '</div>';
+        el.appendChild(block);
+      });
+    }
+
+    function renderWeights() {
+      var latest = latestWeightDate();
+      var due = !latest || daysBetween(latest, todayISO()) >= 7;
+      document.getElementById('weeklyWarning').classList.toggle('hidden', !due);
+
+      var list = document.getElementById('weightList');
+      list.innerHTML = '';
+
+      var entries = state.weights.slice().sort(function(a, b) {
+        return b.date.localeCompare(a.date);
+      });
+
+      if (!entries.length) {
+        list.innerHTML = '<div class="weight-item subtle">No weight entries yet.</div>';
+        return;
+      }
+
+      entries.forEach(function(entry) {
+        var row = document.createElement('div');
+        row.className = 'weight-item';
+        row.innerHTML =
+          '<div style="display:flex;justify-content:space-between;gap:10px;">' +
+            '<span>' + entry.date + '</span>' +
+            '<span style="font-weight:700;">' + entry.value + ' lb</span>' +
+          '</div>';
+        list.appendChild(row);
+      });
+    }
+
+    function renderSettings() {
+      var grid = document.getElementById('settingsGrid');
+      grid.innerHTML = '';
+
+      state.categories.forEach(function(item) {
+        var card = document.createElement('div');
+        card.className = 'setting-card';
+        card.innerHTML =
+          '<h3 style="font-size:18px;">' + item.name + '</h3>' +
+          '<div class="subtle small" style="margin-top:4px;">Current guidance: ' + item.unitLabel + '</div>' +
+          '<div class="setting-row">' +
+            '<label><span>Target servings</span><input type="number" min="1" value="' + item.target + '" data-field="target" data-id="' + item.id + '" /></label>' +
+            '<label><span>Amount per serving</span><input type="number" min="0" step="0.5" value="' + item.unitAmount + '" data-field="unitAmount" data-id="' + item.id + '" /></label>' +
+            '<label style="grid-column: span 2;"><span>Serving guide</span><input type="text" value="' + item.unitLabel + '" data-field="unitLabel" data-id="' + item.id + '" /></label>' +
+          '</div>';
+        grid.appendChild(card);
+      });
+
+      Array.prototype.slice.call(grid.querySelectorAll('input')).forEach(function(input) {
+        input.addEventListener('change', function(e) {
+          var id = e.target.getAttribute('data-id');
+          var field = e.target.getAttribute('data-field');
+          var cat = state.categories.find(function(c) { return c.id === id; });
+
+          if (!cat) return;
+
+          if (field === 'target') cat.target = Math.max(1, Number(e.target.value) || 1);
+          if (field === 'unitAmount') cat.unitAmount = Math.max(0, Number(e.target.value) || 0);
+          if (field === 'unitLabel') cat.unitLabel = e.target.value;
+
+          Object.keys(state.dailyEntries).forEach(function(date) {
+            if (!state.dailyEntries[date]) return;
+            if ((state.dailyEntries[date][id] || 0) > cat.target + EXTRA_BOXES) {
+              state.dailyEntries[date][id] = cat.target + EXTRA_BOXES;
+            }
+          });
+
+          saveState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderControls() {
+      var dateEl = document.getElementById('selectedDate');
+      var weightEl = document.getElementById('weightInput');
+
+      dateEl.value = state.selectedDate;
+      ensureDay(state.selectedDate);
+
+      var existing = state.weights.find(function(w) {
+        return w.date === state.selectedDate;
+      });
+
+      weightEl.value = existing ? existing.value : '';
+    }
+
+    function renderAll() {
+      ensureDay(state.selectedDate);
+      renderControls();
+      renderStats();
+      renderMacroRows();
+      renderSummary();
+      renderWeights();
+      renderSettings();
+    }
+
+    document.getElementById('selectedDate').addEventListener('change', function(e) {
+      state.selectedDate = e.target.value;
+      ensureDay(state.selectedDate);
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById('saveWeightBtn').addEventListener('click', function() {
+      var value = Number(document.getElementById('weightInput').value);
+      if (!value) return;
+
+      state.weights = state.weights.filter(function(w) {
+        return w.date !== state.selectedDate;
+      });
+
+      state.weights.push({
+        date: state.selectedDate,
+        value: value
+      });
+
+      state.weights.sort(function(a, b) {
+        return a.date.localeCompare(b.date);
+      });
+
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById('toggleSettingsBtn').addEventListener('click', function() {
+      var panel = document.getElementById('settingsPanel');
+      panel.classList.toggle('hidden');
+      document.getElementById('toggleSettingsBtn').textContent =
+        panel.classList.contains('hidden') ? 'Adjust targets' : 'Hide settings';
+    });
+
+    renderAll();
+  </script>
 </body>
 </html>
